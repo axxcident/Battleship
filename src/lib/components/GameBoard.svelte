@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ShipYard from "./ShipYard.svelte";
 	import { onMount } from "svelte";
 
 	//board size
@@ -15,6 +16,17 @@
 	export let currentShip = {size: 3, orientation: 'horizontal'}; // example ship
 
 	let hoveredCell: {x:number, y:number} | null = null;
+	let draggedShip: any = null;
+
+	function handleDragStart(event: CustomEvent) {
+		draggedShip = event.detail.ship;
+	}
+
+	function handleDragEnd() {
+		if (hoveredCell) {
+			placeShip(hoveredCell.x, hoveredCell.y);
+		}
+	}
 
 	function handleCellHover(x:number, y:number) {
 		hoveredCell = {x, y};
@@ -33,7 +45,9 @@
 	function placeShip(x: number, y: number) {
 		if (!isValidPlacement(x, y)) return;
 
-		const { size, orientation } = currentShip;
+		const size = draggedShip.size;
+		const { orientation } = currentShip;
+
 		for (let i = 0; i < size; i++) {
 			const newX = orientation === 'horizontal' ? x : x + i;
 			const newY = orientation === 'horizontal' ? y + i : y;
@@ -43,7 +57,8 @@
 	}
 
 	function isValidPlacement(x:number, y:number) {
-		const { size, orientation } = currentShip;
+		const size = draggedShip.size;
+		const { orientation } = currentShip;
 
 		//check if ship goes out of bounds
 		if (orientation === 'horizontal' && y + size > BOARD_SIZE) return false;
@@ -113,6 +128,14 @@
 	</div>
 </section>
 
+{#if isPlacementPhase}
+	<ShipYard
+		{currentShip}
+		on:dragstart={handleDragStart}
+		on:dragend={handleDragEnd}
+	/>
+{/if}
+
 <style>
 
 	.boards-container {
@@ -130,7 +153,7 @@
 		flex: 1;
 		aspect-ratio: 1;
 		height: 100%;
-		max-height: min(100%, 100vw);
+		max-height: min(100%, 100vh);
 	}
 
 	.radar {
