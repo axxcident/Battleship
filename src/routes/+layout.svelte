@@ -19,7 +19,7 @@
 	.layout {
 	  flex: 1;
 	  background-color: #1a1a1a;
-	  padding: 2rem;
+	  padding: 1rem;
 	  color: aliceblue;
 	}
   </style>

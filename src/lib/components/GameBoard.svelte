@@ -70,31 +70,108 @@
 
 </script>
 
-<section class="">
-	<div class="board flex flex-col gap-2 h-auto border-slate-800 border-solid border-2 bg-blue-400">
+<section class="flex justify-around text-2xl w-[70%] mx-auto">
+	<h4 class="">Ships</h4>
+	<h4 class="">Radar</h4>
+</section>
+<section class="boards-container">
+	<div class="board player">
 		{#each board as row, x}
-			<div class="row w-full h-full flex justify-center gap-2">
-				{#each row as cell, y}
-					<button
-						aria-label="cell"
-						class="cell bg-blue-800 rounded-md"
-						class:ship={cell === 'ship'}
-						class:hit={cell === 'hit'}
-						class:miss={cell === 'miss'}
-						on:mouseenter={() => handleCellHover(x, y)}
-						on:mouseleave={() => hoveredCell = null}
-						on:click={() => handleCellClick(x, y)}
-					></button>
-				{/each}
-			</div>
+		  <div class="row">
+			{#each row as cell, y}
+			  <button
+				aria-label="cell"
+				class="cell"
+				class:ship={cell === 'ship'}
+				class:hit={cell === 'hit'}
+				class:miss={cell === 'miss'}
+				on:mouseenter={() => handleCellHover(x, y)}
+				on:mouseleave={() => hoveredCell = null}
+				on:click={() => handleCellClick(x, y)}
+			  ></button>
+			{/each}
+		  </div>
 		{/each}
+	</div>
+	<div class="board radar">
+	  {#each board as row, x}
+		<div class="row">
+		  {#each row as cell, y}
+			<button
+			  aria-label="cell"
+			  class="cell"
+			  class:ship={cell === 'ship'}
+			  class:hit={cell === 'hit'}
+			  class:miss={cell === 'miss'}
+			  on:mouseenter={() => handleCellHover(x, y)}
+			  on:mouseleave={() => hoveredCell = null}
+			  on:click={() => handleCellClick(x, y)}
+			></button>
+		  {/each}
+		</div>
+	  {/each}
 	</div>
 </section>
 
 <style>
 
+	.boards-container {
+		display: flex;
+		flex-direction: row;
+		gap: 1.5rem;
+		height: 100%;
+		width: 70%;
+		padding: 1rem;
+		box-sizing: border-box;
+		margin: 0 auto;
+	}
+
+	.board {
+		flex: 1;
+		aspect-ratio: 1;
+		height: 100%;
+		max-height: min(100%, 100vw);
+	}
+
+	.radar {
+		background-color: #1b4d3e;
+	}
+
+	.player {
+		background-color: #0066cc;
+	}
+
+	.row {
+		display: grid;
+		grid-template-columns: repeat(10, 1fr);
+	}
+
 	.cell {
-		height: clamp(30px, 8vw, 65px);
-		width: clamp(30px, 8vw, 65px);
+		aspect-ratio: 1;
+		border: 1px solid hsla(0, 0%, 100%, 0.2);
+		background: none;
+		position: relative;
+	}
+
+	.cell::before {
+		content: '+';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		color: rgba(255, 255, 255, 0.7);
+		font-size: 0.8rem;
+	}
+
+	.cell.ship {
+		background-color: white;
+	}
+
+	.cell.hit {
+		background-color: red;
+	}
+
+	.cell.miss {
+		background-color: gray;
 	}
 </style>
