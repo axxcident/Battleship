@@ -7,6 +7,17 @@
 	let cellSize: number;
     let boardElement: HTMLElement;
 
+	let previewCells: {x: number, y: number, isValid: boolean}[] = [];
+
+	// Cell states: 'empty | 'hit' | 'miss' | 'ship'
+	export let isPlacementPhase = true;
+	export let currentShip = {size: 3, orientation: 'horizontal'}; // example ship
+
+	let hoveredCell: {x:number, y:number} | null = null;
+	let draggedShip: any = null;
+
+	let grabOffset: {x: number, y: number} | null = null;
+
 	// Calculate cell size when component mounts and on window resize
 	function updateCellSize() {
         if (boardElement) {
@@ -20,28 +31,77 @@
 		.fill(null)
 		.map(() => Array(BOARD_SIZE).fill('empty'));
 
-	// Cell states: 'empty | 'hit' | 'miss' | 'ship'
-	export let isPlacementPhase = true;
-	export let currentShip = {size: 3, orientation: 'horizontal'}; // example ship
-
-	let hoveredCell: {x:number, y:number} | null = null;
-	let draggedShip: any = null;
-
-	let grabOffset: {x: number, y: number} | null = null;
-
 	function handleDragStart(event: CustomEvent) {
 		draggedShip = event.detail.ship;
 		grabOffset = event.detail.grabOffset;
 	}
 
 	function handleDragEnd() {
-		if (hoveredCell) {
+		if (hoveredCell && isValidPlacement(hoveredCell.x, hoveredCell.y)) {
 			placeShip(hoveredCell.x, hoveredCell.y);
 		}
+		previewCells = [];
 	}
 
 	function handleCellHover(x:number, y:number) {
+		if (!grabOffset) return;
 		hoveredCell = {x, y};
+
+		if (draggedShip && hoveredCell) {
+			const size = draggedShip.size;
+			const { orientation } = currentShip;
+
+			// Calculate preview based on grab offset
+			const offsetCells = orientation === 'horizontal'
+				? Math.floor(grabOffset?.x / cellSize)
+				: Math.floor(grabOffset?.y / cellSize);
+
+			const startX = orientation === 'horizontal' ? x : x - offsetCells;
+			const startY = orientation === 'horizontal' ? y - offsetCells : y;
+
+			// Generate preview cells
+			previewCells = [];
+
+			// First check if the entire placement would be valid
+			let isEntirePlacementValid = true;
+
+			// Check bounds
+			if (orientation === 'horizontal') {
+				if (startY < 0 || startY + size > BOARD_SIZE || startX < 0 || startX >= BOARD_SIZE) {
+					isEntirePlacementValid = false;
+				}
+			} else {
+				if (startX < 0 || startX + size > BOARD_SIZE || startY < 0 || startY >= BOARD_SIZE) {
+					isEntirePlacementValid = false;
+				}
+			}
+
+			for (let i = 0; i < size; i++) {
+				const newX = orientation === 'horizontal' ? startX : startX + i;
+				const newY = orientation === 'horizontal' ? startY + i : startY;
+
+				// Individual cell validity
+				let isValid = true;
+
+				// Check bounds and overlap
+				if (newX < 0 || newX >= BOARD_SIZE ||
+					newY < 0 || newY >= BOARD_SIZE ||
+					board[newX]?.[newY] === 'ship' ||
+					!isEntirePlacementValid) {
+					isValid = false;
+				}
+
+				previewCells.push({ x: newX, y: newY, isValid });
+			}
+		} else {
+			previewCells = [];
+    	}
+	}
+
+	// Clear preview when leaving board or ending drag
+	function handleCellLeave() {
+		hoveredCell = null;
+		previewCells = [];
 	}
 
 	function handleCellClick(x:number, y:number) {
@@ -164,8 +224,10 @@
 				class:ship={cell === 'ship'}
 				class:hit={cell === 'hit'}
 				class:miss={cell === 'miss'}
+				class:preview={previewCells.some(p => p.x === x && p.y === y)}
+				class:preview-invalid={previewCells.some(p => p.x === x && p.y === y && !p.isValid)}
 				on:mouseenter={() => handleCellHover(x, y)}
-				on:mouseleave={() => hoveredCell = null}
+				on:mouseleave={handleCellLeave}
 				on:click={() => handleCellClick(x, y)}
 			  ></button>
 			{/each}
@@ -249,6 +311,19 @@
 		transform: translate(-50%, -50%);
 		color: rgba(255, 255, 255, 0.7);
 		font-size: 0.8rem;
+	}
+
+	.cell.preview {
+		background-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.cell.preview-invalid {
+		background-color: rgba(255, 0, 0, 0.3);
+	}
+
+	/* Optional: add transition for smooth preview */
+	.cell {
+		transition: background-color 0.15s ease-in-out;
 	}
 
 	.cell.ship {
