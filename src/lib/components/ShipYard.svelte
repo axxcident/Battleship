@@ -3,6 +3,9 @@
 
 	export let currentShip: {size: number, orientation: string};
 
+	// Add prop for cell size
+	export let cellSize: number; // Match your grid cell size
+
 	export let ships = [
 		{ id: 1, size: 5, name: "Carrier" },
 		{ id: 2, size: 4, name: "Battleship" },
@@ -20,19 +23,25 @@
 	function handleDragStart(ship: any, event: MouseEvent) {
 		isDragging = true;
 		draggedShip = ship;
-		currentShip.size = ship.size;
-		const rect = (event.target as HTMLElement).getBoundingClientRect();
+
+		const shipElement = event.target as HTMLElement;
+		const rect = shipElement.getBoundingClientRect();
+
 		dragPosition = {
 			x: event.clientX - rect.left,
 			y: event.clientY - rect.top,
 		};
 
-		dispatch("dragstart");
+		dispatch("dragstart", {
+       	 	ship,
+        	grabOffset: dragPosition
+    	});
 	}
 
 	function handleDrag(event: MouseEvent) {
+		if (!isDragging || !draggedShip) return;
+
 		const ship = document.getElementById(`ship-${draggedShip.id}`);
-		if (!isDragging) return;
 
 		if ( ship instanceof HTMLElement ) {
 			ship.style.left = `${event.clientX - dragPosition.x}px`;
@@ -52,7 +61,7 @@
 	}
 </script>
 
-<div class="shipyard">
+<div class="shipyard" style="--cell-size: {cellSize}px">
 	<button on:click={toggleOrientation}>
 		Rotate Ships ({currentShip.orientation})
 	</button>
@@ -63,7 +72,7 @@
 				id="ship-{ship.id}"
 				class="ship"
 				class:vertical={isVertical}
-				class:dragging={isDragging && ship.id === draggedShip?.id}
+				class:dragging={isDragging && draggedShip?.id === ship.id}
 				style="--size: {ship.size}"
 				on:mousedown={(e) => handleDragStart(ship, e)}
 				role="button"
@@ -94,8 +103,8 @@
 
 	.ship {
 		position: relative;
-		width: calc(var(--size) * 40px);
-		height: 40px;
+		width: calc(var(--size) * var(--cell-size, 51px));
+		height: var(--cell-size, 51px);
 		background: #666;
 		cursor: move;
 		display: flex;
@@ -105,13 +114,14 @@
 	}
 
 	.ship.vertical {
-		width: 40px;
-		height: calc(var(--size) * 40px);
+        width: var(--cell-size, 51px);
+        height: calc(var(--size) * var(--cell-size, 51px));
 		/* flex-direction: column; */
 	}
 
 	.ship.dragging {
-		position: absolute;
+		/* position: absolute; */
+		position: fixed;
 		pointer-events: none;
 	}
 </style>
