@@ -3,6 +3,8 @@
 
 	export let currentShip: {size: number, orientation: string};
 
+	export let placedShips: Set<number>;
+
 	// Add prop for cell size
 	export let cellSize: number; // Match your grid cell size
 
@@ -73,8 +75,9 @@
 				class="ship"
 				class:vertical={isVertical}
 				class:dragging={isDragging && draggedShip?.id === ship.id}
+				class:placed={placedShips.has(ship.id)}
 				style="--size: {ship.size}"
-				on:mousedown={(e) => handleDragStart(ship, e)}
+				on:mousedown={(e) => !placedShips.has(ship.id) && handleDragStart(ship, e)}
 				role="button"
 				aria-roledescription="draggable"
 				tabindex="0"
@@ -122,6 +125,12 @@
 	.ship.dragging {
 		/* position: absolute; */
 		position: fixed;
+		pointer-events: none;
+	}
+
+	.ship.placed {
+		opacity: 0.5;
+		cursor: not-allowed;
 		pointer-events: none;
 	}
 </style>

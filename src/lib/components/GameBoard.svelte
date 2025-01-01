@@ -8,6 +8,7 @@
     let boardElement: HTMLElement;
 
 	let previewCells: {x: number, y: number, isValid: boolean}[] = [];
+	let placedShips = new Set<number>();
 
 	// Cell states: 'empty | 'hit' | 'miss' | 'ship'
 	export let isPlacementPhase = true;
@@ -32,6 +33,9 @@
 		.map(() => Array(BOARD_SIZE).fill('empty'));
 
 	function handleDragStart(event: CustomEvent) {
+		const ship = event.detail.ship;
+		if (placedShips.has(ship.id)) return;
+
 		draggedShip = event.detail.ship;
 		grabOffset = event.detail.grabOffset;
 	}
@@ -115,7 +119,7 @@
 	}
 
 	function placeShip(x: number, y: number) {
-		if (!isValidPlacement(x, y) || !draggedShip || !grabOffset) return;
+		if (!isValidPlacement(x, y) || !draggedShip || !grabOffset || placedShips.has(draggedShip.id)) return;
 
 		const size = draggedShip.size;
 		const { orientation } = currentShip;
@@ -141,7 +145,11 @@
 				board[newX][newY] = 'ship';
 			}
 		}
+		placedShips.add(draggedShip.id);
 		board = [...board];
+		draggedShip = null;
+		hoveredCell = null;
+		previewCells = [];
 	}
 
 	function isValidPlacement(x:number, y:number) {
@@ -258,6 +266,7 @@
 	<ShipYard
 		{currentShip}
 		cellSize={cellSize}
+		{placedShips}
 		on:dragstart={handleDragStart}
 		on:dragend={handleDragEnd}
 	/>
