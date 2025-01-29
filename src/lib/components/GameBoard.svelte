@@ -27,10 +27,11 @@
         }
     }
 
-	// Initialize empty board
-	let board = Array(BOARD_SIZE)
+	// Initialize empty boards
+	let playerBoard = Array(BOARD_SIZE)
 		.fill(null)
 		.map(() => Array(BOARD_SIZE).fill('empty'));
+	let radarBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill('empty'));
 
 	function handleDragStart(event: CustomEvent) {
 		const ship = event.detail.ship;
@@ -90,7 +91,7 @@
 				// Check bounds and overlap
 				if (newX < 0 || newX >= BOARD_SIZE ||
 					newY < 0 || newY >= BOARD_SIZE ||
-					board[newX]?.[newY] === 'ship' ||
+					playerBoard[newX]?.[newY] === 'ship' ||
 					!isEntirePlacementValid) {
 					isValid = false;
 				}
@@ -119,7 +120,13 @@
 	}
 
 	function placeShip(x: number, y: number) {
-		if (!isValidPlacement(x, y) || !draggedShip || !grabOffset || placedShips.has(draggedShip.id)) return;
+		if (!isValidPlacement(x, y) || !draggedShip || !grabOffset || placedShips.has(draggedShip.id)) {
+			// Reset drag state even when placement fails
+			draggedShip = null;
+			hoveredCell = null;
+			previewCells = [];
+			return;
+		}
 
 		const size = draggedShip.size;
 		const { orientation } = currentShip;
@@ -142,11 +149,12 @@
 			const newY = orientation === 'horizontal' ? startY + i : startY;
 
 			if (newX >= 0 && newX < BOARD_SIZE && newY >= 0 && newY < BOARD_SIZE) {
-				board[newX][newY] = 'ship';
+				playerBoard[newX][newY] = 'ship';
 			}
 		}
 		placedShips.add(draggedShip.id);
-		board = [...board];
+		placedShips = placedShips;
+		playerBoard = [...playerBoard];
 		draggedShip = null;
 		hoveredCell = null;
 		previewCells = [];
@@ -165,7 +173,7 @@
 		const startX = orientation === 'horizontal' ? x : x - offsetCells;
 		const startY = orientation === 'horizontal' ? y - offsetCells : y;
 
-    // Check bounds
+    	// Check bounds
 		if (orientation === 'horizontal') {
 			if (startY < 0 || startY + size > BOARD_SIZE) {
 				console.log('out of bounds horizontal');
@@ -194,19 +202,19 @@
 				console.log('out of bounds');
 				return false
 			};
-			if (board[newX][newY] === 'ship') return false;
+			if (playerBoard[newX][newY] === 'ship') return false;
 		}
 
 		return true;
 	}
 
 	function fireShot(x:number, y:number) {
-		if (board[x][y] === 'ship') {
-			board[x][y] = 'hit';
-		} else if (board[x][y] === 'empty') {
-			board[x][y] = 'miss';
+		if (radarBoard[x][y] === 'ship') {
+			radarBoard[x][y] = 'hit';
+		} else if (radarBoard[x][y] === 'empty') {
+			radarBoard[x][y] = 'miss';
 		}
-		board = [...board];
+		radarBoard = [...radarBoard];
 	}
 
 	onMount(() => {
@@ -223,7 +231,7 @@
 </section>
 <section class="boards-container">
 	<div class="board player" bind:this={boardElement}>
-		{#each board as row, x}
+		{#each playerBoard as row, x}
 		  <div class="row">
 			{#each row as cell, y}
 			  <button
@@ -243,7 +251,7 @@
 		{/each}
 	</div>
 	<div class="board radar">
-	  {#each board as row, x}
+	  {#each radarBoard as row, x}
 		<div class="row">
 		  {#each row as cell, y}
 			<button

@@ -2,11 +2,8 @@
 	import { createEventDispatcher } from "svelte";
 
 	export let currentShip: {size: number, orientation: string};
-
 	export let placedShips: Set<number>;
-
-	// Add prop for cell size
-	export let cellSize: number; // Match your grid cell size
+	export let cellSize: number;
 
 	export let ships = [
 		{ id: 1, size: 5, name: "Carrier" },
@@ -20,9 +17,10 @@
 	let isDragging = false;
 	let draggedShip:any = null;
 	let dragPosition = { x: 0, y: 0 };
-	let isVertical = false;
 
 	function handleDragStart(ship: any, event: MouseEvent) {
+		if (placedShips.has(ship.id)) return;
+
 		isDragging = true;
 		draggedShip = ship;
 
@@ -34,33 +32,57 @@
 			y: event.clientY - rect.top,
 		};
 
+		// Update the dragged element's style immediately
+		if (shipElement) {
+			shipElement.style.position = 'fixed';
+			shipElement.style.zIndex = '1000';
+			shipElement.style.pointerEvents = 'none';
+			updateDragPosition(event);
+        }
+
 		dispatch("dragstart", {
        	 	ship,
         	grabOffset: dragPosition
     	});
 	}
 
+	function updateDragPosition(event: MouseEvent) {
+        if (!isDragging || !draggedShip) return;
+
+        const ship = document.getElementById(`ship-${draggedShip.id}`);
+        if (ship) {
+            ship.style.left = `${event.clientX - dragPosition.x}px`;
+            ship.style.top = `${event.clientY - dragPosition.y}px`;
+        }
+    }
+
 	function handleDrag(event: MouseEvent) {
-		if (!isDragging || !draggedShip) return;
-
-		const ship = document.getElementById(`ship-${draggedShip.id}`);
-
-		if ( ship instanceof HTMLElement ) {
-			ship.style.left = `${event.clientX - dragPosition.x}px`;
-			ship.style.top = `${event.clientY - dragPosition.y}px`;
-			ship.style.zIndex = "1000";
-			ship.style.opacity = "0.75";
-		}
-	}
+        updateDragPosition(event);
+    }
 
 	function handleDragEnd() {
-		isDragging = false;
-		dispatch("dragend");
-	}
+        if (!isDragging || !draggedShip) return;
+
+        const ship = document.getElementById(`ship-${draggedShip.id}`);
+        if (ship) {
+            // Reset the ship's style
+            ship.style.position = '';
+            ship.style.left = '';
+            ship.style.top = '';
+            ship.style.zIndex = '';
+            ship.style.pointerEvents = '';
+        }
+
+        isDragging = false;
+        draggedShip = null;
+        dispatch("dragend");
+    }
+
 
 	function toggleOrientation() {
 		currentShip.orientation = currentShip.orientation === 'horizontal' ? 'vertical' : 'horizontal';
 	}
+
 </script>
 
 <div class="shipyard" style="--cell-size: {cellSize}px">
@@ -70,20 +92,20 @@
 
 	<div class="ships">
 		{#each ships as ship (ship.id)}
-			<div
-				id="ship-{ship.id}"
-				class="ship"
-				class:vertical={isVertical}
-				class:dragging={isDragging && draggedShip?.id === ship.id}
-				class:placed={placedShips.has(ship.id)}
-				style="--size: {ship.size}"
-				on:mousedown={(e) => !placedShips.has(ship.id) && handleDragStart(ship, e)}
-				role="button"
-				aria-roledescription="draggable"
-				tabindex="0"
-			>
-				{ship.name}
-			</div>
+			{#if !placedShips.has(ship.id)}
+				<div
+					id="ship-{ship.id}"
+					class="ship"
+					class:vertical={currentShip.orientation === 'vertical'}
+					style="--size: {ship.size}"
+					on:mousedown={(e) => handleDragStart(ship, e)}
+					role="button"
+					aria-roledescription="draggable"
+					tabindex="0"
+				>
+					{ship.name}
+				</div>
+			{/if}
 		{/each}
 	</div>
 </div>
@@ -96,12 +118,14 @@
 <style>
 	.shipyard {
 		padding: 1rem;
+		position: relative;
 	}
 
 	.ships {
 		display: flex;
 		gap: 1rem;
 		margin-top: 1rem;
+		position: relative;
 	}
 
 	.ship {
@@ -122,15 +146,9 @@
 		/* flex-direction: column; */
 	}
 
-	.ship.dragging {
-		/* position: absolute; */
-		position: fixed;
-		pointer-events: none;
-	}
-
-	.ship.placed {
+	/* .ship.placed {
 		opacity: 0.5;
 		cursor: not-allowed;
 		pointer-events: none;
-	}
+	} */
 </style>
